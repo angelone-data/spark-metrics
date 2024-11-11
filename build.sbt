@@ -4,17 +4,17 @@ lazy val ioPrometheusVersion = "0.15.0"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "de-spark-metrics",
+    name := "spark-metrics",
     organization := "com.angelone",
     organizationHomepage := Some(url("https://angelone.in/")),
-    homepage := Some(url("https://github.com/angelone-data/de-spark-metrics")),
+    homepage := Some(url("https://github.com/angelone-data/spark-metrics")),
     developers := List(
       Developer("dvajaria", "Darsh Vajaria", "darsh.vajaria@angelbroking.com", url("https://github.com/dvajaria")),
       Developer("stoader", "Sebastian Toader", "st0ad3r@gmail.com", url("https://github.com/stoader")),
       Developer("sancyx", "Sandor Magyari", "sancyx@gmail.com", url("https://github.com/sancyx")),
       Developer("baluchicken", "Balint Molnar", "balintmolnar91@gmail.com", url("https://github.com/baluchicken"))
     ),
-    scmInfo := Some(ScmInfo(url("https://github.com/angelone-data/de-spark-metrics"), "git@github.com:angelone-data/de-spark-metrics.git")),
+    scmInfo := Some(ScmInfo(url("https://github.com/angelone-data/spark-metrics"), "git@github.com:angelone-data/spark-metrics.git")),
     licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
     scalaVersion := scala212,
     crossScalaVersions := supportedScalaVersions,
