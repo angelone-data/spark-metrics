@@ -1,6 +1,5 @@
 lazy val scala212 = "2.12.12"
 lazy val supportedScalaVersions = List(scala212)
-lazy val ioPrometheusVersion = "0.15.0"
 
 lazy val root = (project in file("."))
   .settings(
@@ -18,15 +17,15 @@ lazy val root = (project in file("."))
     licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
     scalaVersion := scala212,
     crossScalaVersions := supportedScalaVersions,
-    version      := "3.2-1.0.0",
+    version      := "3.1-1.0.1",
     libraryDependencies ++= Seq(
-      "io.prometheus" % "simpleclient" % ioPrometheusVersion,
-      "io.prometheus" % "simpleclient_dropwizard" % ioPrometheusVersion,
-      "io.prometheus" % "simpleclient_common" % ioPrometheusVersion,
-      "io.prometheus" % "simpleclient_pushgateway" % ioPrometheusVersion,
-      "io.dropwizard.metrics" % "metrics-core" % "4.2.9" % Provided,
-      "io.prometheus.jmx" % "collector" % "0.17.0",
-      "org.apache.spark" %% "spark-core" % "3.2.1" % Provided,
+      "io.prometheus" % "simpleclient" % "0.11.0",
+      "io.prometheus" % "simpleclient_dropwizard" % "0.11.0",
+      "io.prometheus" % "simpleclient_common" % "0.11.0",
+      "io.prometheus" % "simpleclient_pushgateway" % "0.11.0",
+      "io.dropwizard.metrics" % "metrics-core" % "4.1.1" % Provided,
+      "io.prometheus.jmx" % "collector" % "0.15.0",
+      "org.apache.spark" %% "spark-core" % "3.1.2" % Provided,
       "com.novocode" % "junit-interface" % "0.11" % Test,
       // Spark shaded jetty is not resolved in scala 2.11
       // Described in https://issues.apache.org/jira/browse/SPARK-18162?focusedCommentId=15818123#comment-15818123
