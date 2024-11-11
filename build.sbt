@@ -1,4 +1,4 @@
-lazy val scala212 = "2.12.12"
+lazy val scala212 = "2.12.10"
 lazy val supportedScalaVersions = List(scala212)
 
 lazy val root = (project in file("."))
@@ -17,7 +17,7 @@ lazy val root = (project in file("."))
     licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
     scalaVersion := scala212,
     crossScalaVersions := supportedScalaVersions,
-    version      := "3.1-1.0.1",
+    version      := "3.1-1.0.2",
     libraryDependencies ++= Seq(
       "io.prometheus" % "simpleclient" % "0.11.0",
       "io.prometheus" % "simpleclient_dropwizard" % "0.11.0",
