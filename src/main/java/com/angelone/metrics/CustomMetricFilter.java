@@ -28,7 +28,7 @@ public class CustomMetricFilter implements MetricFilter {
 
     @Override
     public boolean matches(String name, Metric metric) {
-        log.info("name: {} -> metric: {}", name, metric);
+        //log.info("name: {} -> metric: {}", name, metric);
         return whitelistedMetricNames.contains(name);
     }
 }

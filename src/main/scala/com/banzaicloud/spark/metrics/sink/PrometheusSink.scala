@@ -73,6 +73,8 @@ abstract class PrometheusSink(property: Properties,
       logInfo(s"metricsNamespace=$metricsNamespace, sparkAppName=$sparkAppName, sparkAppId=$sparkAppId, " +
         s"executorId=$executorId")
 
+      logInfo(s"counters=$counters, histograms=$histograms")
+
       val role: String = (sparkAppId, executorId) match {
         case (Some(_), Some("driver")) | (Some(_), Some("<driver>"))=> "driver"
         case (Some(_), Some(_)) => "executor"
