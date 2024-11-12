@@ -1,25 +1,32 @@
 package com.banzaicloud.spark.metrics
 
-import java.{lang, util}
-import java.util.Collections
-
 import io.prometheus.client.{Collector, CollectorRegistry}
-
-import scala.collection.JavaConverters._
 import org.apache.spark.internal.Logging
 
+import java.util.Collections
+import java.{lang, util}
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 
 class DeduplicatedCollectorRegistry(parent: CollectorRegistry = CollectorRegistry.defaultRegistry)
   extends CollectorRegistry with Logging {
+
   private type MetricsEnum = util.Enumeration[Collector.MetricFamilySamples]
+  private val allowedMetricNames = Set("activeOpCount", "NamedExecutor_num_active_tasks", "NamedExecutor_num_pending_tasks", "jmx_GarbageCollector_LastGCInfo_memoryUsageAfterGc_used")
+
+  // Helper class to wrap a List as an Enumeration
+  private class ListEnumeration[T](list: List[T]) extends util.Enumeration[T] {
+    private val elements = list.iterator
+
+    override def hasMoreElements: Boolean = elements.hasNext
+
+    override def nextElement: T = elements.next()
+  }
 
   override def register(m: Collector): Unit = {
-
-    // in case collectors with the same name are registered multiple times keep the first one
     Try(parent.register(m)) match {
       case Failure(ex) if ex.getMessage.startsWith("Collector already registered that provides name:") =>
-        // TODO: find a more robust solution for checking if there is already a collector registered for a specific metric
+      // TODO: find a more robust solution for checking if there is already a collector registered for a specific metric
       case Failure(ex) => throw ex
       case _ =>
     }
@@ -36,11 +43,25 @@ class DeduplicatedCollectorRegistry(parent: CollectorRegistry = CollectorRegistr
   override def getSampleValue(name: String): lang.Double = parent.getSampleValue(name)
 
   override def metricFamilySamples(): MetricsEnum = {
-    deduplicate(parent.metricFamilySamples())
+    val filteredSamples = filterMetrics(parent.metricFamilySamples())
+    deduplicate(filteredSamples)
   }
 
   override def filteredMetricFamilySamples(includedNames: util.Set[String]): MetricsEnum = {
-    deduplicate(parent.filteredMetricFamilySamples(includedNames))
+    val filteredSamples = filterMetrics(parent.filteredMetricFamilySamples(includedNames))
+    deduplicate(filteredSamples)
+  }
+
+  // Method to filter metrics based on the custom logic
+  private def filterMetrics(allSamples: MetricsEnum): MetricsEnum = {
+    val filteredSamples = allSamples.asScala.toSeq.filter(
+      {
+        sample =>
+          logInfo(sample.name)
+          allowedMetricNames.contains(sample.name)
+      }
+    )
+    new ListEnumeration(filteredSamples.toList)
   }
 
   private def deduplicate(source: MetricsEnum): MetricsEnum = {
