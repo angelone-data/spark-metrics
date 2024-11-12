@@ -1,8 +1,5 @@
 package org.apache.spark.banzaicloud.metrics.sink
 
-import java.net.URL
-import java.util.Properties
-
 import com.banzaicloud.spark.metrics.sink.PrometheusSink.SinkConfig
 import com.codahale.metrics.MetricRegistry
 import io.prometheus.client.exporter.PushGateway
@@ -10,6 +7,9 @@ import org.apache.spark.banzaicloud.metrics.sink.PrometheusSink.SinkConfigProxy
 import org.apache.spark.internal.config
 import org.apache.spark.metrics.sink.Sink
 import org.apache.spark.{SecurityManager, SparkConf, SparkEnv}
+
+import java.net.URL
+import java.util.Properties
 
 object PrometheusSink {
 

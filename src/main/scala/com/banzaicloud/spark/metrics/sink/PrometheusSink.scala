@@ -221,7 +221,9 @@ abstract class PrometheusSink(property: Properties,
       try {
         instantiateMetricFilter(className, metricsFilterProps - "class")
       } catch {
-        case ex: Exception => throw new RuntimeException(s"Exception occurred while creating MetricFilter instance: ${ex.getMessage}", ex)
+        case ex: Exception =>
+          logError(s"Exception occurred while creating MetricFilter instance: ${ex.getMessage}")
+          throw new RuntimeException(s"Exception occurred while creating MetricFilter instance: ${ex.getMessage}", ex)
       }
     }
     .getOrElse(MetricFilter.ALL)
@@ -325,6 +327,7 @@ abstract class PrometheusSink(property: Properties,
       throw new RuntimeException(s"${cls.getName} has no public constructors.")
     }
 
+    logInfo("Passed MetricFilter and Public constructor check")
     def maybeCallScalaMapConstructor = constructors.collectFirst {
       case c if c.getParameterCount == 1 &&
         classOf[immutable.Map[_,_]].isAssignableFrom(c.getParameterTypes()(0)) => c.newInstance(props).asInstanceOf[MetricFilter]
@@ -332,7 +335,9 @@ abstract class PrometheusSink(property: Properties,
 
     def maybeCallJavaMapConstructor = constructors.collectFirst {
       case c if c.getParameterCount == 1 &&
-        classOf[util.Map[_,_]].isAssignableFrom(c.getParameterTypes()(0)) => c.newInstance(props.asJava).asInstanceOf[MetricFilter]
+        classOf[util.Map[_,_]].isAssignableFrom(c.getParameterTypes()(0)) =>
+        logInfo(s"Able to capture Map<K,V> constructor=${c.getName}")
+        c.newInstance(props.asJava).asInstanceOf[MetricFilter]
     }
 
     def maybeCallPropertiesConstructor = constructors.collectFirst {
