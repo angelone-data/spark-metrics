@@ -123,7 +123,8 @@ abstract class PrometheusSink(property: Properties,
   val KEY_ENABLE_HOSTNAME_IN_INSTANCE = "enable-hostname-in-instance"
   val KEY_JMX_COLLECTOR_CONFIG = "jmx-collector-config"
 
-  val KEY_RE_METRICS_FILTER = "metrics-filter-([a-zA-Z][a-zA-Z0-9-]*)".r
+  private val KEY_RE_METRICS_FILTER = "metrics-filter-([a-zA-Z][a-zA-Z0-9-]*)".r
+  private val ALLOWED_METRICS_CONFIG_KEY_SUFFIX = "allowed-metrics"
 
   // labels
   val KEY_LABELS = "labels"
@@ -199,14 +200,14 @@ abstract class PrometheusSink(property: Properties,
   logInfo(s"$KEY_LABELS -> ${labelsMap}")
   logInfo(s"$KEY_JMX_COLLECTOR_CONFIG -> $jmxCollectorConfig")
 
-  val metricsFilterProps: Map[String, String] = property.stringPropertyNames().asScala
+  private val metricsFilterProps: Map[String, String] = property.stringPropertyNames().asScala
     .collect { case qualifiedKey @ KEY_RE_METRICS_FILTER(key) =>
       val value = property.getProperty(qualifiedKey)
       logInfo(s"$qualifiedKey -> $value")
       key -> value
     }.toMap
 
-  val pushRegistry: CollectorRegistry = new DeduplicatedCollectorRegistry()
+  val pushRegistry: CollectorRegistry = new DeduplicatedCollectorRegistry(metricsFilterProps.getOrElse(ALLOWED_METRICS_CONFIG_KEY_SUFFIX, ""))
 
   private val pushTimestamp = if (enableTimestamp) Some(PushTimestampProvider()) else None
 

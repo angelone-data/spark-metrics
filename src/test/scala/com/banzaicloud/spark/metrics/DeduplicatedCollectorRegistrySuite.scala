@@ -24,7 +24,7 @@ class DeduplicatedCollectorRegistrySuite {
       baseRegistry.register("hive.", registryB)
 
       val metricsExports = new DropwizardExports(baseRegistry)
-      val deduplicatedCollectorRegistry = new DeduplicatedCollectorRegistry(new CollectorRegistry(true))
+      val deduplicatedCollectorRegistry = new DeduplicatedCollectorRegistry("", new CollectorRegistry(true))
 
       // when
       metricsExports.register(deduplicatedCollectorRegistry)

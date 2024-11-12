@@ -8,11 +8,12 @@ import java.{lang, util}
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 
-class DeduplicatedCollectorRegistry(parent: CollectorRegistry = CollectorRegistry.defaultRegistry)
+class DeduplicatedCollectorRegistry( val allowedMetricsString: String,
+                                     parent: CollectorRegistry = CollectorRegistry.defaultRegistry)
   extends CollectorRegistry with Logging {
 
   private type MetricsEnum = util.Enumeration[Collector.MetricFamilySamples]
-  private val allowedMetricNames = Set("activeOpCount", "NamedExecutor_num_active_tasks", "NamedExecutor_num_pending_tasks", "jmx_GarbageCollector_LastGCInfo_memoryUsageAfterGc_used")
+  private val allowedMetricSet = allowedMetricsString.split(",").map(_.trim).toSet
 
   // Helper class to wrap a List as an Enumeration
   private class ListEnumeration[T](list: List[T]) extends util.Enumeration[T] {
@@ -54,11 +55,14 @@ class DeduplicatedCollectorRegistry(parent: CollectorRegistry = CollectorRegistr
 
   // Method to filter metrics based on the custom logic
   private def filterMetrics(allSamples: MetricsEnum): MetricsEnum = {
+    if (allowedMetricSet.isEmpty)
+      return allSamples
+
     val filteredSamples = allSamples.asScala.toSeq.filter(
       {
         sample =>
           logInfo(sample.name)
-          allowedMetricNames.contains(sample.name)
+          allowedMetricSet.contains(sample.name)
       }
     )
     new ListEnumeration(filteredSamples.toList)
