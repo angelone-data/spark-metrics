@@ -54,7 +54,9 @@ class CustomCollectorRegistry(val allowedMetricsString: String,
   }
 
   override def filteredMetricFamilySamples(includedNames: util.Set[String]): MetricsEnum = {
+    logInfo("Calling filterMetrics")
     val filteredSamples = filterMetrics(parent.filteredMetricFamilySamples(includedNames))
+    logInfo("Called filterMetrics")
     deduplicate(filteredSamples)
   }
 
