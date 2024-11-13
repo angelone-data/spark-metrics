@@ -59,8 +59,10 @@ class CustomCollectorRegistry(val allowedMetricsString: String,
   // 1. allowedMetricSet empty or * means everything is allowed.
   // 2. Else, metrics with exact name match from allowedMetricSet are allowed
   private def filterMetrics(allSamples: MetricsEnum): MetricsEnum = {
-    if (allowedMetricSet.isEmpty || (allowedMetricSet.size == 1 && allowedMetricSet.contains("*")))
+    if (allowedMetricSet.isEmpty || (allowedMetricSet.size == 1 && allowedMetricSet.contains("*"))) {
+      logInfo("Uff")
       return allSamples
+    }
 
     logInfo("Inside filterMetrics method")
     val filteredSamples = allSamples.asScala.toSeq.filter(sample => allowedMetricSet.contains(sample.name))
