@@ -17,7 +17,7 @@ class CustomCollectorRegistry(val allowedMetricsString: String,
 
   private type MetricsEnum = util.Enumeration[Collector.MetricFamilySamples]
   private val allowedMetricSet = allowedMetricsString.split(",").map(_.trim).toSet
-
+  logInfo(s"Allowed metric set=$allowedMetricSet")
   // Helper class to wrap a List as an Enumeration
   private class ListEnumeration[T](list: List[T]) extends util.Enumeration[T] {
     private val elements = list.iterator
@@ -62,6 +62,7 @@ class CustomCollectorRegistry(val allowedMetricsString: String,
     if (allowedMetricSet.isEmpty || (allowedMetricSet.size == 1 && allowedMetricSet.contains("*")))
       return allSamples
 
+    logInfo("Inside filterMetrics method")
     val filteredSamples = allSamples.asScala.toSeq.filter(sample => allowedMetricSet.contains(sample.name))
     new ListEnumeration(filteredSamples.toList)
   }

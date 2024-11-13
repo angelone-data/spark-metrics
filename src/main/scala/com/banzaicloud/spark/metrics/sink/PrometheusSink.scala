@@ -16,24 +16,23 @@
  */
 package com.banzaicloud.spark.metrics.sink
 
+import com.banzaicloud.spark.metrics.NameDecorator.Replace
+import com.banzaicloud.spark.metrics.PushTimestampDecorator.PushTimestampProvider
+import com.banzaicloud.spark.metrics.{CustomCollectorRegistry, SparkDropwizardExports, SparkJmxExports}
+import com.codahale.metrics._
+import io.prometheus.client.exporter.PushGateway
+import io.prometheus.client.{Collector, CollectorRegistry}
+import io.prometheus.jmx.JmxCollector
+import org.apache.spark.internal.Logging
+
 import java.io.File
 import java.net.{InetAddress, URI, URL, UnknownHostException}
 import java.util
 import java.util.Properties
 import java.util.concurrent.TimeUnit
-
-import com.banzaicloud.spark.metrics.NameDecorator.Replace
-import com.banzaicloud.spark.metrics.PushTimestampDecorator.PushTimestampProvider
-import com.banzaicloud.spark.metrics.{CustomCollectorRegistry, SparkDropwizardExports, SparkJmxExports}
-import com.codahale.metrics._
-import io.prometheus.client.{Collector, CollectorRegistry}
-import io.prometheus.client.exporter.PushGateway
-import io.prometheus.jmx.JmxCollector
-import org.apache.spark.internal.Logging
-
 import scala.collection.JavaConverters._
-import scala.collection.immutable.ListMap
 import scala.collection.immutable
+import scala.collection.immutable.ListMap
 import scala.util.Try
 import scala.util.matching.Regex
 
@@ -199,6 +198,7 @@ abstract class PrometheusSink(property: Properties,
       key -> value
     }.toMap
 
+  logInfo(s"Allowed metrics=${metricsFilterProps.getOrElse(ALLOWED_METRICS_CONFIG_KEY_SUFFIX,"")}")
   val pushRegistry: CollectorRegistry = new CustomCollectorRegistry(metricsFilterProps.getOrElse(ALLOWED_METRICS_CONFIG_KEY_SUFFIX, ""))
 
   private val pushTimestamp = if (enableTimestamp) Some(PushTimestampProvider()) else None
