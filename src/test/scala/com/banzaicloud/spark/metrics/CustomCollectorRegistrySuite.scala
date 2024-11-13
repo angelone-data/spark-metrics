@@ -7,7 +7,7 @@ import org.junit.{Assert, Test}
 
 import scala.collection.JavaConverters._
 
-class DeduplicatedCollectorRegistrySuite {
+class CustomCollectorRegistrySuite {
     @Test def testDeduplication(): Unit = {
       // given
       val baseRegistry = new MetricRegistry
@@ -24,7 +24,7 @@ class DeduplicatedCollectorRegistrySuite {
       baseRegistry.register("hive.", registryB)
 
       val metricsExports = new DropwizardExports(baseRegistry)
-      val deduplicatedCollectorRegistry = new DeduplicatedCollectorRegistry("", new CollectorRegistry(true))
+      val deduplicatedCollectorRegistry = new CustomCollectorRegistry("", new CollectorRegistry(true))
 
       // when
       metricsExports.register(deduplicatedCollectorRegistry)

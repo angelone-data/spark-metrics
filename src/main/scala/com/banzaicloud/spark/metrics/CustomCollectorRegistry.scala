@@ -8,8 +8,11 @@ import java.{lang, util}
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 
-class DeduplicatedCollectorRegistry( val allowedMetricsString: String,
-                                     parent: CollectorRegistry = CollectorRegistry.defaultRegistry)
+// Supports
+// 1.Configurable metric filtering via name
+// 2.Deduplication of metrics
+class CustomCollectorRegistry(val allowedMetricsString: String,
+                              parent: CollectorRegistry = CollectorRegistry.defaultRegistry)
   extends CollectorRegistry with Logging {
 
   private type MetricsEnum = util.Enumeration[Collector.MetricFamilySamples]
@@ -58,13 +61,7 @@ class DeduplicatedCollectorRegistry( val allowedMetricsString: String,
     if (allowedMetricSet.isEmpty)
       return allSamples
 
-    val filteredSamples = allSamples.asScala.toSeq.filter(
-      {
-        sample =>
-          logInfo(sample.name)
-          allowedMetricSet.contains(sample.name)
-      }
-    )
+    val filteredSamples = allSamples.asScala.toSeq.filter(sample => allowedMetricSet.contains(sample.name))
     new ListEnumeration(filteredSamples.toList)
   }
 

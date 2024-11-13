@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 
 import com.banzaicloud.spark.metrics.NameDecorator.Replace
 import com.banzaicloud.spark.metrics.PushTimestampDecorator.PushTimestampProvider
-import com.banzaicloud.spark.metrics.{DeduplicatedCollectorRegistry, SparkDropwizardExports, SparkJmxExports}
+import com.banzaicloud.spark.metrics.{CustomCollectorRegistry, SparkDropwizardExports, SparkJmxExports}
 import com.codahale.metrics._
 import io.prometheus.client.{Collector, CollectorRegistry}
 import io.prometheus.client.exporter.PushGateway
@@ -72,8 +72,6 @@ abstract class PrometheusSink(property: Properties,
 
       logInfo(s"metricsNamespace=$metricsNamespace, sparkAppName=$sparkAppName, sparkAppId=$sparkAppId, " +
         s"executorId=$executorId")
-
-      logInfo(s"counters=$counters, histograms=$histograms")
 
       val role: String = (sparkAppId, executorId) match {
         case (Some(_), Some("driver")) | (Some(_), Some("<driver>"))=> "driver"
@@ -130,34 +128,34 @@ abstract class PrometheusSink(property: Properties,
   val KEY_LABELS = "labels"
   val KEY_GROUP_KEY = "group-key"
 
-  val pollPeriod: Int =
+  private val pollPeriod: Int =
     Option(property.getProperty(KEY_PUSH_PERIOD))
       .map(_.toInt)
       .getOrElse(DEFAULT_PUSH_PERIOD)
 
-  val pollUnit: TimeUnit =
+  private val pollUnit: TimeUnit =
     Option(property.getProperty(KEY_PUSH_PERIOD_UNIT))
       .map { s => TimeUnit.valueOf(s.toUpperCase) }
       .getOrElse(DEFAULT_PUSH_PERIOD_UNIT)
 
-  val pushGatewayAddress =
+  private val pushGatewayAddress =
     Option(property.getProperty(KEY_PUSHGATEWAY_ADDRESS))
       .getOrElse(DEFAULT_PUSHGATEWAY_ADDRESS)
 
-  val pushGatewayAddressProtocol =
+  private val pushGatewayAddressProtocol =
     Option(property.getProperty(KEY_PUSHGATEWAY_ADDRESS_PROTOCOL))
       .getOrElse(DEFAULT_PUSHGATEWAY_ADDRESS_PROTOCOL)
 
-  val enableTimestamp: Boolean =
+  private val enableTimestamp: Boolean =
     Option(property.getProperty(KEY_PUSHGATEWAY_ENABLE_TIMESTAMP))
       .map(_.toBoolean)
       .getOrElse(PUSHGATEWAY_ENABLE_TIMESTAMP)
 
-  val metricsNameCaptureRegex: Option[Regex] =
+  private val metricsNameCaptureRegex: Option[Regex] =
     Option(property.getProperty(KEY_METRICS_NAME_CAPTURE_REGEX))
       .map(new Regex(_))
 
-  val metricsNameReplacement: String =
+  private val metricsNameReplacement: String =
     Option(property.getProperty(KEY_METRICS_NAME_REPLACEMENT))
         .getOrElse("")
 
@@ -169,22 +167,16 @@ abstract class PrometheusSink(property: Properties,
     throw new IllegalArgumentException("Metrics name replacement must be specified if metrics name capture regexp is set !")
   }
 
-  val labelsMap = parseLabels(KEY_LABELS).getOrElse(Map.empty[String, String])
-  val groupKeyMap = parseLabels(KEY_GROUP_KEY)
+  private val labelsMap = parseLabels(KEY_LABELS).getOrElse(Map.empty[String, String])
+  private val groupKeyMap = parseLabels(KEY_GROUP_KEY)
 
-  val enableDropwizardCollector: Boolean =
-    Option(property.getProperty(KEY_ENABLE_DROPWIZARD_COLLECTOR))
-      .map(_.toBoolean)
-      .getOrElse(true)
-  val enableJmxCollector: Boolean =
-    Option(property.getProperty(KEY_ENABLE_JMX_COLLECTOR))
-      .map(_.toBoolean)
-      .getOrElse(false)
-  val enableHostNameInInstance: Boolean =
-    Option(property.getProperty(KEY_ENABLE_HOSTNAME_IN_INSTANCE))
-      .map(_.toBoolean)
-      .getOrElse(false)
-  val jmxCollectorConfig =
+  private val enableDropwizardCollector: Boolean =
+    Option(property.getProperty(KEY_ENABLE_DROPWIZARD_COLLECTOR)).forall(_.toBoolean)
+  private val enableJmxCollector: Boolean =
+    Option(property.getProperty(KEY_ENABLE_JMX_COLLECTOR)).exists(_.toBoolean)
+  private val enableHostNameInInstance: Boolean =
+    Option(property.getProperty(KEY_ENABLE_HOSTNAME_IN_INSTANCE)).exists(_.toBoolean)
+  private val jmxCollectorConfig =
     Option(property.getProperty(KEY_JMX_COLLECTOR_CONFIG))
       .getOrElse(DEFAULT_KEY_JMX_COLLECTOR_CONFIG)
 
@@ -207,26 +199,24 @@ abstract class PrometheusSink(property: Properties,
       key -> value
     }.toMap
 
-  val pushRegistry: CollectorRegistry = new DeduplicatedCollectorRegistry(metricsFilterProps.getOrElse(ALLOWED_METRICS_CONFIG_KEY_SUFFIX, ""))
+  val pushRegistry: CollectorRegistry = new CustomCollectorRegistry(metricsFilterProps.getOrElse(ALLOWED_METRICS_CONFIG_KEY_SUFFIX, ""))
 
   private val pushTimestamp = if (enableTimestamp) Some(PushTimestampProvider()) else None
 
   private val replace = metricsNameCaptureRegex.map(Replace(_, metricsNameReplacement))
 
-  lazy val sparkMetricExports = new SparkDropwizardExports(registry, replace, labelsMap, pushTimestamp)
+  private lazy val sparkMetricExports = new SparkDropwizardExports(registry, replace, labelsMap, pushTimestamp)
 
-  lazy val jmxMetrics = new SparkJmxExports(new JmxCollector(new File(jmxCollectorConfig)), labelsMap, pushTimestamp)
+  private lazy val jmxMetrics = new SparkJmxExports(new JmxCollector(new File(jmxCollectorConfig)), labelsMap, pushTimestamp)
 
-  val pushGateway: PushGateway = pushGatewayBuilder(new URL(s"$pushGatewayAddressProtocol://$pushGatewayAddress"))
+  private val pushGateway: PushGateway = pushGatewayBuilder(new URL(s"$pushGatewayAddressProtocol://$pushGatewayAddress"))
 
   val metricsFilter: MetricFilter = metricsFilterProps.get("class")
     .map { className =>
       try {
         instantiateMetricFilter(className, metricsFilterProps - "class")
       } catch {
-        case ex: Exception =>
-          logError(s"Exception occurred while creating MetricFilter instance: ${ex.getMessage}")
-          throw new RuntimeException(s"Exception occurred while creating MetricFilter instance: ${ex.getMessage}", ex)
+        case ex: Exception => throw new RuntimeException(s"Exception occurred while creating MetricFilter instance: ${ex.getMessage}", ex)
       }
     }
     .getOrElse(MetricFilter.ALL)
@@ -257,7 +247,7 @@ abstract class PrometheusSink(property: Properties,
     reporter.report()
   }
 
-  private def checkMinimalPollingPeriod(pollUnit: TimeUnit, pollPeriod: Int) {
+  private def checkMinimalPollingPeriod(pollUnit: TimeUnit, pollPeriod: Int): Unit = {
     val period = TimeUnit.SECONDS.convert(pollPeriod, pollUnit)
     if (period < 1) {
       throw new IllegalArgumentException("Polling period " + pollPeriod + " " + pollUnit +
@@ -324,13 +314,12 @@ abstract class PrometheusSink(property: Properties,
       throw new RuntimeException(s"${cls.getName} is not a subclass of ${classOf[MetricFilter].getName}")
     }
 
-    val constructors = cls.getConstructors()
+    val constructors = cls.getConstructors
 
     if (constructors.isEmpty) {
       throw new RuntimeException(s"${cls.getName} has no public constructors.")
     }
 
-    logInfo("Passed MetricFilter and Public constructor check")
     def maybeCallScalaMapConstructor = constructors.collectFirst {
       case c if c.getParameterCount == 1 &&
         classOf[immutable.Map[_,_]].isAssignableFrom(c.getParameterTypes()(0)) => c.newInstance(props).asInstanceOf[MetricFilter]
@@ -338,9 +327,7 @@ abstract class PrometheusSink(property: Properties,
 
     def maybeCallJavaMapConstructor = constructors.collectFirst {
       case c if c.getParameterCount == 1 &&
-        classOf[util.Map[_,_]].isAssignableFrom(c.getParameterTypes()(0)) =>
-        logInfo(s"Able to capture Map<K,V> constructor=${c.getName}")
-        c.newInstance(props.asJava).asInstanceOf[MetricFilter]
+        classOf[util.Map[_,_]].isAssignableFrom(c.getParameterTypes()(0)) => c.newInstance(props.asJava).asInstanceOf[MetricFilter]
     }
 
     def maybeCallPropertiesConstructor = constructors.collectFirst {
