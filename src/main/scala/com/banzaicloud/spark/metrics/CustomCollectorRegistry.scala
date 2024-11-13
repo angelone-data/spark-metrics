@@ -47,7 +47,9 @@ class CustomCollectorRegistry(val allowedMetricsString: String,
   override def getSampleValue(name: String): lang.Double = parent.getSampleValue(name)
 
   override def metricFamilySamples(): MetricsEnum = {
+    logInfo("Calling filterMetrics")
     val filteredSamples = filterMetrics(parent.metricFamilySamples())
+    logInfo("Called filterMetrics")
     deduplicate(filteredSamples)
   }
 
@@ -59,13 +61,20 @@ class CustomCollectorRegistry(val allowedMetricsString: String,
   // 1. allowedMetricSet empty or * means everything is allowed.
   // 2. Else, metrics with exact name match from allowedMetricSet are allowed
   private def filterMetrics(allSamples: MetricsEnum): MetricsEnum = {
+    logInfo(s"Allowed metric set: $allowedMetricSet") // Log the state of allowedMetricSet
+    logInfo(s"allowedMetricSet.isEmpty: ${allowedMetricSet.isEmpty}")
+    logInfo(s"allowedMetricSet.size: ${allowedMetricSet.size}")
+    logInfo(s"allowedMetricSet contains '*': ${allowedMetricSet.contains("*")}")
+
     if (allowedMetricSet.isEmpty || (allowedMetricSet.size == 1 && allowedMetricSet.contains("*"))) {
-      logInfo("Uff")
+      logInfo("This should be executed")
       return allSamples
     }
 
     logInfo("Inside filterMetrics method")
     val filteredSamples = allSamples.asScala.toSeq.filter(sample => allowedMetricSet.contains(sample.name))
+    logInfo(s"Filtered samples: ${filteredSamples.map(_.name).mkString(", ")}")
+
     new ListEnumeration(filteredSamples.toList)
   }
 
