@@ -56,9 +56,10 @@ class CustomCollectorRegistry(val allowedMetricsString: String,
     deduplicate(filteredSamples)
   }
 
-  // Method to filter metrics based on the custom logic
+  // 1. allowedMetricSet empty or * means everything is allowed.
+  // 2. Else, metrics with exact name match from allowedMetricSet are allowed
   private def filterMetrics(allSamples: MetricsEnum): MetricsEnum = {
-    if (allowedMetricSet.isEmpty)
+    if (allowedMetricSet.isEmpty || (allowedMetricSet.size == 1 && allowedMetricSet.contains("*")))
       return allSamples
 
     val filteredSamples = allSamples.asScala.toSeq.filter(sample => allowedMetricSet.contains(sample.name))
