@@ -11,13 +11,14 @@ import scala.util.{Failure, Try}
 // Supports
 // 1.Configurable metric filtering via name
 // 2.Deduplication of metrics
-class CustomCollectorRegistry(val allowedMetricsString: String,
+class CustomCollectorRegistry(val allowedMetricsString: Option[String],
                               parent: CollectorRegistry = CollectorRegistry.defaultRegistry)
   extends CollectorRegistry with Logging {
 
   private type MetricsEnum = util.Enumeration[Collector.MetricFamilySamples]
-  private val allowedMetricSet = allowedMetricsString.split(",").map(_.trim).toSet
-  logInfo(s"Allowed metric set=$allowedMetricSet")
+  private val allowedMetricSet: Set[String] =
+    if (allowedMetricsString.isEmpty) Set() else allowedMetricsString.get.split(",").map(_.trim).toSet
+
   // Helper class to wrap a List as an Enumeration
   private class ListEnumeration[T](list: List[T]) extends util.Enumeration[T] {
     private val elements = list.iterator
@@ -47,16 +48,12 @@ class CustomCollectorRegistry(val allowedMetricsString: String,
   override def getSampleValue(name: String): lang.Double = parent.getSampleValue(name)
 
   override def metricFamilySamples(): MetricsEnum = {
-    logInfo("Calling filterMetrics")
     val filteredSamples = filterMetrics(parent.metricFamilySamples())
-    logInfo("Called filterMetrics")
     deduplicate(filteredSamples)
   }
 
   override def filteredMetricFamilySamples(includedNames: util.Set[String]): MetricsEnum = {
-    logInfo("Calling filterMetrics")
     val filteredSamples = filterMetrics(parent.filteredMetricFamilySamples(includedNames))
-    logInfo("Called filterMetrics")
     deduplicate(filteredSamples)
   }
 

@@ -198,8 +198,7 @@ abstract class PrometheusSink(property: Properties,
       key -> value
     }.toMap
 
-  logInfo(s"Allowed metrics=${metricsFilterProps.getOrElse(ALLOWED_METRICS_CONFIG_KEY_SUFFIX,"")}")
-  val pushRegistry: CollectorRegistry = new CustomCollectorRegistry(metricsFilterProps.getOrElse(ALLOWED_METRICS_CONFIG_KEY_SUFFIX, ""))
+  val pushRegistry: CollectorRegistry = new CustomCollectorRegistry(metricsFilterProps.get(ALLOWED_METRICS_CONFIG_KEY_SUFFIX))
 
   private val pushTimestamp = if (enableTimestamp) Some(PushTimestampProvider()) else None
 
