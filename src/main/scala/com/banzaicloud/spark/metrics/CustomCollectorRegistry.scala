@@ -63,7 +63,7 @@ class CustomCollectorRegistry(val allowedMetricsString: Option[String],
   // 2. Else, metrics with exact name match from allowedMetricSet are allowed
   private def filterMetrics(allSamples: MetricsEnum): MetricsEnum = {
     allSamples.asScala.foreach { metric =>
-      println(s"Metric: ${metric.name}, Type: ${metric.`type`}, ${metric.unit}")
+      println(s"Metric: ${metric.name}, Type: ${metric.`type`}")
     }
     if (allowedMetricSet.isEmpty || (allowedMetricSet.size == 1 && allowedMetricSet.contains("*"))) {
       return allSamples
