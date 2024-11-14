@@ -53,7 +53,7 @@ abstract class CollectorDecorator(parent: Collector)
 
   protected def familyBuilder: FamilyBuilder = FamilyBuilder()
 
-  protected def map(source: util.List[MetricFamilySamples], builder: FamilyBuilder) = {
-    source.asScala.toList.map(builder.build(_)).asJava
+  protected def map(source: util.List[MetricFamilySamples], builder: FamilyBuilder): util.List[MetricFamilySamples] = {
+    source.asScala.toList.map(builder.build).asJava
   }
 }

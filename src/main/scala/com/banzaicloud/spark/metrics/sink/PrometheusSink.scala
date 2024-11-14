@@ -16,24 +16,23 @@
  */
 package com.banzaicloud.spark.metrics.sink
 
+import com.banzaicloud.spark.metrics.NameDecorator.Replace
+import com.banzaicloud.spark.metrics.PushTimestampDecorator.PushTimestampProvider
+import com.banzaicloud.spark.metrics.{CustomCollectorRegistry, SparkDropwizardExports, SparkJmxExports}
+import com.codahale.metrics._
+import io.prometheus.client.exporter.PushGateway
+import io.prometheus.client.{Collector, CollectorRegistry}
+import io.prometheus.jmx.JmxCollector
+import org.apache.spark.internal.Logging
+
 import java.io.File
 import java.net.{InetAddress, URI, URL, UnknownHostException}
 import java.util
 import java.util.Properties
 import java.util.concurrent.TimeUnit
-
-import com.banzaicloud.spark.metrics.NameDecorator.Replace
-import com.banzaicloud.spark.metrics.PushTimestampDecorator.PushTimestampProvider
-import com.banzaicloud.spark.metrics.{DeduplicatedCollectorRegistry, SparkDropwizardExports, SparkJmxExports}
-import com.codahale.metrics._
-import io.prometheus.client.{Collector, CollectorRegistry}
-import io.prometheus.client.exporter.PushGateway
-import io.prometheus.jmx.JmxCollector
-import org.apache.spark.internal.Logging
-
 import scala.collection.JavaConverters._
-import scala.collection.immutable.ListMap
 import scala.collection.immutable
+import scala.collection.immutable.ListMap
 import scala.util.Try
 import scala.util.matching.Regex
 
@@ -69,7 +68,6 @@ abstract class PrometheusSink(property: Properties,
                          histograms: util.SortedMap[String, Histogram],
                          meters: util.SortedMap[String, Meter],
                          timers: util.SortedMap[String, Timer]): Unit = {
-
       logInfo(s"metricsNamespace=$metricsNamespace, sparkAppName=$sparkAppName, sparkAppId=$sparkAppId, " +
         s"executorId=$executorId")
 
@@ -121,40 +119,41 @@ abstract class PrometheusSink(property: Properties,
   val KEY_ENABLE_HOSTNAME_IN_INSTANCE = "enable-hostname-in-instance"
   val KEY_JMX_COLLECTOR_CONFIG = "jmx-collector-config"
 
-  val KEY_RE_METRICS_FILTER = "metrics-filter-([a-zA-Z][a-zA-Z0-9-]*)".r
+  private val KEY_RE_METRICS_FILTER = "metrics-filter-([a-zA-Z][a-zA-Z0-9-]*)".r
+  private val ALLOWED_METRICS_CONFIG_KEY_SUFFIX = "allowed-metrics"
 
   // labels
-  val KEY_LABELS = "labels"
-  val KEY_GROUP_KEY = "group-key"
+  private val KEY_LABELS = "labels"
+  private val KEY_GROUP_KEY = "group-key"
 
-  val pollPeriod: Int =
+  private val pollPeriod: Int =
     Option(property.getProperty(KEY_PUSH_PERIOD))
       .map(_.toInt)
       .getOrElse(DEFAULT_PUSH_PERIOD)
 
-  val pollUnit: TimeUnit =
+  private val pollUnit: TimeUnit =
     Option(property.getProperty(KEY_PUSH_PERIOD_UNIT))
       .map { s => TimeUnit.valueOf(s.toUpperCase) }
       .getOrElse(DEFAULT_PUSH_PERIOD_UNIT)
 
-  val pushGatewayAddress =
+  private val pushGatewayAddress =
     Option(property.getProperty(KEY_PUSHGATEWAY_ADDRESS))
       .getOrElse(DEFAULT_PUSHGATEWAY_ADDRESS)
 
-  val pushGatewayAddressProtocol =
+  private val pushGatewayAddressProtocol =
     Option(property.getProperty(KEY_PUSHGATEWAY_ADDRESS_PROTOCOL))
       .getOrElse(DEFAULT_PUSHGATEWAY_ADDRESS_PROTOCOL)
 
-  val enableTimestamp: Boolean =
+  private val enableTimestamp: Boolean =
     Option(property.getProperty(KEY_PUSHGATEWAY_ENABLE_TIMESTAMP))
       .map(_.toBoolean)
       .getOrElse(PUSHGATEWAY_ENABLE_TIMESTAMP)
 
-  val metricsNameCaptureRegex: Option[Regex] =
+  private val metricsNameCaptureRegex: Option[Regex] =
     Option(property.getProperty(KEY_METRICS_NAME_CAPTURE_REGEX))
       .map(new Regex(_))
 
-  val metricsNameReplacement: String =
+  private val metricsNameReplacement: String =
     Option(property.getProperty(KEY_METRICS_NAME_REPLACEMENT))
         .getOrElse("")
 
@@ -166,22 +165,16 @@ abstract class PrometheusSink(property: Properties,
     throw new IllegalArgumentException("Metrics name replacement must be specified if metrics name capture regexp is set !")
   }
 
-  val labelsMap = parseLabels(KEY_LABELS).getOrElse(Map.empty[String, String])
-  val groupKeyMap = parseLabels(KEY_GROUP_KEY)
+  private val labelsMap = parseLabels(KEY_LABELS).getOrElse(Map.empty[String, String])
+  private val groupKeyMap = parseLabels(KEY_GROUP_KEY)
 
-  val enableDropwizardCollector: Boolean =
-    Option(property.getProperty(KEY_ENABLE_DROPWIZARD_COLLECTOR))
-      .map(_.toBoolean)
-      .getOrElse(true)
-  val enableJmxCollector: Boolean =
-    Option(property.getProperty(KEY_ENABLE_JMX_COLLECTOR))
-      .map(_.toBoolean)
-      .getOrElse(false)
-  val enableHostNameInInstance: Boolean =
-    Option(property.getProperty(KEY_ENABLE_HOSTNAME_IN_INSTANCE))
-      .map(_.toBoolean)
-      .getOrElse(false)
-  val jmxCollectorConfig =
+  private val enableDropwizardCollector: Boolean =
+    Option(property.getProperty(KEY_ENABLE_DROPWIZARD_COLLECTOR)).forall(_.toBoolean)
+  private val enableJmxCollector: Boolean =
+    Option(property.getProperty(KEY_ENABLE_JMX_COLLECTOR)).exists(_.toBoolean)
+  private val enableHostNameInInstance: Boolean =
+    Option(property.getProperty(KEY_ENABLE_HOSTNAME_IN_INSTANCE)).exists(_.toBoolean)
+  private val jmxCollectorConfig =
     Option(property.getProperty(KEY_JMX_COLLECTOR_CONFIG))
       .getOrElse(DEFAULT_KEY_JMX_COLLECTOR_CONFIG)
 
@@ -197,24 +190,24 @@ abstract class PrometheusSink(property: Properties,
   logInfo(s"$KEY_LABELS -> ${labelsMap}")
   logInfo(s"$KEY_JMX_COLLECTOR_CONFIG -> $jmxCollectorConfig")
 
-  val metricsFilterProps: Map[String, String] = property.stringPropertyNames().asScala
+  private val metricsFilterProps: Map[String, String] = property.stringPropertyNames().asScala
     .collect { case qualifiedKey @ KEY_RE_METRICS_FILTER(key) =>
       val value = property.getProperty(qualifiedKey)
       logInfo(s"$qualifiedKey -> $value")
       key -> value
     }.toMap
 
-  val pushRegistry: CollectorRegistry = new DeduplicatedCollectorRegistry()
+  val pushRegistry: CollectorRegistry = new CustomCollectorRegistry(metricsFilterProps.get(ALLOWED_METRICS_CONFIG_KEY_SUFFIX))
 
   private val pushTimestamp = if (enableTimestamp) Some(PushTimestampProvider()) else None
 
   private val replace = metricsNameCaptureRegex.map(Replace(_, metricsNameReplacement))
 
-  lazy val sparkMetricExports = new SparkDropwizardExports(registry, replace, labelsMap, pushTimestamp)
+  private lazy val sparkMetricExports = new SparkDropwizardExports(registry, replace, labelsMap, pushTimestamp)
 
-  lazy val jmxMetrics = new SparkJmxExports(new JmxCollector(new File(jmxCollectorConfig)), labelsMap, pushTimestamp)
+  private lazy val jmxMetrics = new SparkJmxExports(new JmxCollector(new File(jmxCollectorConfig)), labelsMap, pushTimestamp)
 
-  val pushGateway: PushGateway = pushGatewayBuilder(new URL(s"$pushGatewayAddressProtocol://$pushGatewayAddress"))
+  private val pushGateway: PushGateway = pushGatewayBuilder(new URL(s"$pushGatewayAddressProtocol://$pushGatewayAddress"))
 
   val metricsFilter: MetricFilter = metricsFilterProps.get("class")
     .map { className =>
@@ -226,7 +219,7 @@ abstract class PrometheusSink(property: Properties,
     }
     .getOrElse(MetricFilter.ALL)
 
-  val reporter = new Reporter(registry, metricsFilter)
+  private val reporter = new Reporter(registry, metricsFilter)
 
   def start(): Unit = {
     if (enableDropwizardCollector) {
@@ -252,7 +245,7 @@ abstract class PrometheusSink(property: Properties,
     reporter.report()
   }
 
-  private def checkMinimalPollingPeriod(pollUnit: TimeUnit, pollPeriod: Int) {
+  private def checkMinimalPollingPeriod(pollUnit: TimeUnit, pollPeriod: Int): Unit = {
     val period = TimeUnit.SECONDS.convert(pollPeriod, pollUnit)
     if (period < 1) {
       throw new IllegalArgumentException("Polling period " + pollPeriod + " " + pollUnit +
@@ -319,7 +312,7 @@ abstract class PrometheusSink(property: Properties,
       throw new RuntimeException(s"${cls.getName} is not a subclass of ${classOf[MetricFilter].getName}")
     }
 
-    val constructors = cls.getConstructors()
+    val constructors = cls.getConstructors
 
     if (constructors.isEmpty) {
       throw new RuntimeException(s"${cls.getName} has no public constructors.")

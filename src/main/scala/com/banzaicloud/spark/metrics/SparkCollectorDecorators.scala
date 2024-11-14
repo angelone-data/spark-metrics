@@ -1,15 +1,13 @@
 package com.banzaicloud.spark.metrics
 
-import java.util
-
 import com.banzaicloud.spark.metrics.CollectorDecorator.FamilyBuilder
 import com.banzaicloud.spark.metrics.PushTimestampDecorator.PushTimestampProvider
 import com.codahale.metrics.MetricRegistry
 import io.prometheus.client.Collector.MetricFamilySamples
-import io.prometheus.client.Collector.MetricFamilySamples.Sample
 import io.prometheus.client.dropwizard.DropwizardExports
 import io.prometheus.jmx.JmxCollector
 
+import java.util
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
 
@@ -42,7 +40,7 @@ trait LabelsDecorator extends CollectorDecorator {
     private val labelNames = extraLabels.keys.toList.asJava
     private val labelValues = extraLabels.values.toList.asJava
 
-    protected override def familyBuilder = {
+    protected override def familyBuilder: FamilyBuilder = {
       super.familyBuilder.copy(
         sampleBuilder = super.familyBuilder.sampleBuilder.copy(
           sampleLabelNames = s => mergeLists(s.labelNames, labelNames),
@@ -64,7 +62,7 @@ object PushTimestampDecorator {
 trait PushTimestampDecorator extends CollectorDecorator {
   val maybeTimestampProvider: Option[PushTimestampProvider]
 
-  protected override def map(source: util.List[MetricFamilySamples], builder: FamilyBuilder) = {
+  protected override def map(source: util.List[MetricFamilySamples], builder: FamilyBuilder): util.List[MetricFamilySamples] = {
     val builderWithTimestamp = maybeTimestampProvider match {
       case Some(provider) =>
         val timestamp: java.lang.Long = provider.getTimestamp()
@@ -80,10 +78,10 @@ trait PushTimestampDecorator extends CollectorDecorator {
 }
 
 trait ConstantHelpDecorator extends CollectorDecorator {
-  val constatntHelp: String
+  val constantHelp: String
 
-  protected override val familyBuilder = super.familyBuilder.copy(
-      helpMessage = _ => constatntHelp
+  protected override val familyBuilder: FamilyBuilder = super.familyBuilder.copy(
+      helpMessage = _ => constantHelp
   )
 }
 
@@ -96,7 +94,7 @@ class SparkDropwizardExports(private val registry: MetricRegistry,
     with LabelsDecorator
     with PushTimestampDecorator
     with ConstantHelpDecorator {
-  override val constatntHelp: String = "Generated from Dropwizard metric import"
+  override val constantHelp: String = "Generated from Dropwizard metric import"
 }
 
 class SparkJmxExports(private val jmxCollector: JmxCollector,
