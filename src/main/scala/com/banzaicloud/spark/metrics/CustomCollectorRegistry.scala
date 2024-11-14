@@ -51,27 +51,23 @@ class CustomCollectorRegistry(val allowedMetricsString: Option[String],
   override def metricFamilySamples(): MetricsEnum = {
     logInfo("Trace2")
     val filteredSamples = filterMetrics(parent.metricFamilySamples())
-    logInfo("Trace3")
     deduplicate(filteredSamples)
   }
 
   override def filteredMetricFamilySamples(includedNames: util.Set[String]): MetricsEnum = {
-    logInfo("Trace4")
     val filteredSamples = filterMetrics(parent.filteredMetricFamilySamples(includedNames))
-    logInfo("Trace5")
     deduplicate(filteredSamples)
   }
 
   // 1. allowedMetricSet empty or * means everything is allowed.
   // 2. Else, metrics with exact name match from allowedMetricSet are allowed
   private def filterMetrics(allSamples: MetricsEnum): MetricsEnum = {
+    logInfo(s"samples: ${allSamples.asScala.toSeq.map(sample => sample.name).mkString(", ")}")
     if (allowedMetricSet.isEmpty || (allowedMetricSet.size == 1 && allowedMetricSet.contains("*"))) {
       return allSamples
     }
 
     val filteredSamples = allSamples.asScala.toSeq.filter(sample => allowedMetricSet.contains(sample.name))
-    logInfo(s"Filtered samples: ${filteredSamples.map(_.name).mkString(", ")}")
-
     new ListEnumeration(filteredSamples.toList)
   }
 

@@ -68,7 +68,8 @@ abstract class PrometheusSink(property: Properties,
                          histograms: util.SortedMap[String, Histogram],
                          meters: util.SortedMap[String, Meter],
                          timers: util.SortedMap[String, Timer]): Unit = {
-      logInfo(s"gauges=$gauges, meters=$meters, counters=$counters, histograms=$histograms, timers=$timers")
+      //logInfo(s"gauges=$gauges, meters=$meters, counters=$counters, histograms=$histograms, timers=$timers")
+      logInfo("Trace0")
       logInfo(s"metricsNamespace=$metricsNamespace, sparkAppName=$sparkAppName, sparkAppId=$sparkAppId, " +
         s"executorId=$executorId")
 
@@ -124,8 +125,8 @@ abstract class PrometheusSink(property: Properties,
   private val ALLOWED_METRICS_CONFIG_KEY_SUFFIX = "allowed-metrics"
 
   // labels
-  val KEY_LABELS = "labels"
-  val KEY_GROUP_KEY = "group-key"
+  private val KEY_LABELS = "labels"
+  private val KEY_GROUP_KEY = "group-key"
 
   private val pollPeriod: Int =
     Option(property.getProperty(KEY_PUSH_PERIOD))
