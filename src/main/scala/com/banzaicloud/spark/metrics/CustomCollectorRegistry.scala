@@ -29,7 +29,6 @@ class CustomCollectorRegistry(val allowedMetricsString: Option[String],
   }
 
   override def register(m: Collector): Unit = {
-    logInfo("Trace1")
     Try(parent.register(m)) match {
       case Failure(ex) if ex.getMessage.startsWith("Collector already registered that provides name:") =>
       // TODO: find a more robust solution for checking if there is already a collector registered for a specific metric
@@ -49,7 +48,6 @@ class CustomCollectorRegistry(val allowedMetricsString: Option[String],
   override def getSampleValue(name: String): lang.Double = parent.getSampleValue(name)
 
   override def metricFamilySamples(): MetricsEnum = {
-    logInfo("Trace2")
     val filteredSamples = filterMetrics(parent.metricFamilySamples())
     deduplicate(filteredSamples)
   }
@@ -62,9 +60,6 @@ class CustomCollectorRegistry(val allowedMetricsString: Option[String],
   // 1. allowedMetricSet empty or * means everything is allowed.
   // 2. Else, metrics with exact name match from allowedMetricSet are allowed
   private def filterMetrics(allSamples: MetricsEnum): MetricsEnum = {
-    allSamples.asScala.foreach { metric =>
-      println(s"Metric: ${metric.name}, Type: ${metric.`type`}")
-    }
     if (allowedMetricSet.isEmpty || (allowedMetricSet.size == 1 && allowedMetricSet.contains("*"))) {
       return allSamples
     }

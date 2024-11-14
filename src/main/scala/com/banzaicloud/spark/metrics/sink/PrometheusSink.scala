@@ -68,8 +68,6 @@ abstract class PrometheusSink(property: Properties,
                          histograms: util.SortedMap[String, Histogram],
                          meters: util.SortedMap[String, Meter],
                          timers: util.SortedMap[String, Timer]): Unit = {
-      //logInfo(s"gauges=$gauges, meters=$meters, counters=$counters, histograms=$histograms, timers=$timers")
-      logInfo("Trace0")
       logInfo(s"metricsNamespace=$metricsNamespace, sparkAppName=$sparkAppName, sparkAppId=$sparkAppId, " +
         s"executorId=$executorId")
 
@@ -224,7 +222,6 @@ abstract class PrometheusSink(property: Properties,
   private val reporter = new Reporter(registry, metricsFilter)
 
   def start(): Unit = {
-    logInfo("Trace0")
     if (enableDropwizardCollector) {
       sparkMetricExports.register(pushRegistry)
     }
@@ -245,7 +242,6 @@ abstract class PrometheusSink(property: Properties,
   }
 
   def report(): Unit = {
-    logInfo("Trace00")
     reporter.report()
   }
 
