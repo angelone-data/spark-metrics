@@ -29,6 +29,7 @@ class CustomCollectorRegistry(val allowedMetricsString: Option[String],
   }
 
   override def register(m: Collector): Unit = {
+    logInfo("Trace1")
     Try(parent.register(m)) match {
       case Failure(ex) if ex.getMessage.startsWith("Collector already registered that provides name:") =>
       // TODO: find a more robust solution for checking if there is already a collector registered for a specific metric
@@ -48,12 +49,16 @@ class CustomCollectorRegistry(val allowedMetricsString: Option[String],
   override def getSampleValue(name: String): lang.Double = parent.getSampleValue(name)
 
   override def metricFamilySamples(): MetricsEnum = {
+    logInfo("Trace2")
     val filteredSamples = filterMetrics(parent.metricFamilySamples())
+    logInfo("Trace3")
     deduplicate(filteredSamples)
   }
 
   override def filteredMetricFamilySamples(includedNames: util.Set[String]): MetricsEnum = {
+    logInfo("Trace4")
     val filteredSamples = filterMetrics(parent.filteredMetricFamilySamples(includedNames))
+    logInfo("Trace5")
     deduplicate(filteredSamples)
   }
 
